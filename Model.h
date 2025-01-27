@@ -13,28 +13,28 @@
 #include "Shader.h" 
 
 // Vertex structure
-struct Vertex {
+struct Vertex_MD {
     glm::vec3 Position;
     glm::vec3 Normal;
     glm::vec2 TexCoords;
 };
 
 // Texture structure
-struct Texture {
+struct Texture_MD {
     unsigned int id;
     std::string type;
     std::string path;
 };
 
 // Mesh class
-class Mesh {
+class Mesh_MD {
 public:
-    std::vector<Vertex> vertices;
+    std::vector<Vertex_MD> vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture> textures;
+    std::vector<Texture_MD> textures;
     unsigned int VAO;
 
-    Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture>& textures)
+    Mesh_MD(const std::vector<Vertex_MD>& vertices, const std::vector<unsigned int>& indices, const std::vector<Texture_MD>& textures)
         : vertices(vertices), indices(indices), textures(textures) {
         setupMesh();
     }
@@ -76,31 +76,31 @@ private:
         glBindVertexArray(VAO);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex_MD), &vertices[0], GL_STATIC_DRAW);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
         // Vertex positions
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_MD), (void*)0);
 
         // Vertex normals
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex_MD), (void*)offsetof(Vertex_MD, Normal));
 
         // Vertex texture coords
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex_MD), (void*)offsetof(Vertex_MD, TexCoords));
 
         glBindVertexArray(0);
     }
 };
 
 // Model class
-class Model {
+class Model_MD {
 public:
-    Model(const std::string& path) {
+    Model_MD(const std::string& path) {
         loadModel(path);
     }
 
@@ -110,9 +110,9 @@ public:
     }
 
 private:
-    std::vector<Mesh> meshes;
+    std::vector<Mesh_MD> meshes;
     std::string directory;
-    std::vector<Texture> textures_loaded;
+    std::vector<Texture_MD> textures_loaded;
 
     void loadModel(const std::string& path) {
         Assimp::Importer importer;
@@ -137,13 +137,13 @@ private:
         }
     }
 
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene) {
-        std::vector<Vertex> vertices;
+    Mesh_MD processMesh(aiMesh* mesh, const aiScene* scene) {
+        std::vector<Vertex_MD> vertices;
         std::vector<unsigned int> indices;
-        std::vector<Texture> textures;
+        std::vector<Texture_MD> textures;
 
         for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-            Vertex vertex;
+            Vertex_MD vertex;
             vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
             vertex.Normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
             if (mesh->mTextureCoords[0])
@@ -161,17 +161,17 @@ private:
 
         if (mesh->mMaterialIndex >= 0) {
             aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-            std::vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+            std::vector<Texture_MD> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
             textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-            std::vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+            std::vector<Texture_MD> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
             textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
         }
 
-        return Mesh(vertices, indices, textures);
+        return Mesh_MD(vertices, indices, textures);
     }
 
-    std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName) {
-        std::vector<Texture> textures;
+    std::vector<Texture_MD> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName) {
+        std::vector<Texture_MD> textures;
         for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
             aiString str;
             mat->GetTexture(type, i, &str);
@@ -184,7 +184,7 @@ private:
                 }
             }
             if (!skip) {
-                Texture texture;
+                Texture_MD texture;
                 texture.id = TextureFromFile(str.C_Str(), directory);
                 texture.type = typeName;
                 texture.path = str.C_Str();

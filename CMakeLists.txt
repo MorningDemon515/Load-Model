@@ -6,6 +6,7 @@ add_executable(Game
         ${CMAKE_CURRENT_SOURCE_DIR}/glad4.6/src/glad.c
         Shader.cpp
         Camera.cpp
+        #LoadModel.cpp
         Main.cpp
 )
 
