@@ -9,38 +9,11 @@
 SDL_Window* window;
 SDL_GLContext glc;
 
-// camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = WIDTH / 2.0f;
-float lastY = HEIGHT / 2.0f;
-bool firstMouse = true;
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f), -90.0f, 0.0f, FPS);
 
-// timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// 假设有一个加载纹理的实现
-unsigned int loadTextureFromFile(const char* path) {
-    // 示例：加载纹理用 stb_image.h
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
-    if (data) {
-        GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        stbi_image_free(data);
-    } else {
-        std::cerr << "Failed to load texture: " << path << std::endl;
-    }
-
-    return textureID;
-}
 
 int main()
 {
@@ -53,6 +26,8 @@ int main()
         WIDTH,HEIGHT,SDL_WINDOW_SHOWN|SDL_WINDOW_OPENGL
     );
 
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+
     glc = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window,glc);
 
@@ -64,11 +39,11 @@ int main()
     //stbi_set_flip_vertically_on_load(true);
 
     ShaderFromFile* shader = new ShaderFromFile("vertex.txt","fragment.txt");
-    Model* m = new Model("model/173_2.obj");
+    Model* m = new Model("model/173_2.b3d");
 
     while (run)
     {
-        float currentFrame = static_cast<float>(SDL_GetTicks());
+        float currentFrame = SDL_GetTicks() / 1000.0f;
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
@@ -79,51 +54,34 @@ int main()
             run = false;
         }
 
-        if(event.type == SDL_KEYDOWN)
+        const Uint8* state = SDL_GetKeyboardState(NULL);
+        if (state[SDL_SCANCODE_W] )
         {
-            if(event.key.keysym.sym == SDLK_w)
-            {
-                camera.ProcessKeyboard(FORWARD, deltaTime);
-            }
-
-            if(event.key.keysym.sym == SDLK_a)
-            {
-                camera.ProcessKeyboard(LEFT, deltaTime);
-            }
-
-            if(event.key.keysym.sym == SDLK_s)
-            {
-                camera.ProcessKeyboard(BACKWARD, deltaTime);
-            }
-
-            if(event.key.keysym.sym == SDLK_d)
-            {
-                camera.ProcessKeyboard(RIGHT, deltaTime);
-            }
+            camera.processKeyboard(static_cast<SDL_Scancode>(SDL_SCANCODE_W), deltaTime);
         }
 
-        if(event.type == SDL_MOUSEMOTION)
+        if(state[SDL_SCANCODE_S])
         {
-            int px = event.motion.x;
-            int py = event.motion.y;
+            camera.processKeyboard(static_cast<SDL_Scancode>(SDL_SCANCODE_S), deltaTime);
+        }
 
-            float xpos = static_cast<float>(px);
-            float ypos = static_cast<float>(py);
+        if(state[SDL_SCANCODE_A] )
+        {
+            camera.processKeyboard(static_cast<SDL_Scancode>(SDL_SCANCODE_A), deltaTime);
+        }
 
-            if (firstMouse)
-            {
-                lastX = xpos;
-                lastY = ypos;
-                firstMouse = false;
-            }
+        if(state[SDL_SCANCODE_D])
+        {
+            camera.processKeyboard(static_cast<SDL_Scancode>(SDL_SCANCODE_D), deltaTime);
+        }
 
-            float xoffset = xpos - lastX;
-            float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+        if(state[SDL_SCANCODE_ESCAPE])
+        {
+            run = false;
+        }
 
-            lastX = xpos;
-            lastY = ypos;
-
-            camera.ProcessMouseMovement(xoffset, yoffset);
+        if (event.type == SDL_MOUSEMOTION) {
+                camera.processMouseMovement(event.motion.xrel, -event.motion.yrel);
         }
 
         glClearColor(1.0f,0.0f,0.0f,1.0f);
@@ -134,8 +92,8 @@ int main()
 
         shader->Use();
 
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.getViewMatrix();
         glUniformMatrix4fv(shader->GetShaderSourceUniform("projection"),1,GL_FALSE,&projection[0][0]);
         glUniformMatrix4fv(shader->GetShaderSourceUniform("view"),1,GL_FALSE,&view[0][0]);
         
@@ -145,6 +103,12 @@ int main()
         glUniformMatrix4fv(shader->GetShaderSourceUniform("model"),1,GL_FALSE,&model[0][0]);
         
         m->Draw(*shader);
+
+        glm::vec3 position = camera.getPosition();
+        glm::vec3 front = camera.getFront();
+
+        std::cout << "Camera Position: (" << position.x << ", " << position.y << ", " << position.z << ")\n";
+        std::cout << "Camera Front: (" << front.x << ", " << front.y << ", " << front.z << ")\n";
 
         SDL_GL_SwapWindow(window);
     }
